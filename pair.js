@@ -10758,7 +10758,7 @@ case 'menu': {
 ┆ ⚙️ ᴍᴏᴅᴇ : ${botMode}
 ┆ 🧩 ᴘʀᴇғɪx : [ ${prefix} ]
 ┆ 📚 ᴄᴏᴍᴍᴀɴᴅs : 100+
-┆ 👥 ᴜsᴇʀs : ${activeUsers}
+┆ 👥 ᴜsᴇʀs : ${activeCount}
 ┆ ⏱️ ʀᴜɴᴛɪᴍᴇ : ${up}
 ╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
 
@@ -11004,7 +11004,7 @@ case 'youx': {
 │✵ ᴜsᴇʀ : @${userNumber}
 │✵ ᴍᴏᴅᴇ : ${botMode}
 │✵ ᴠᴇʀsɪᴏɴ : ${version}
-│✵ ᴜsᴇʀs : ${activeUsers}
+│✵ ᴜsᴇʀs : ${activeCount}
 │✵ ᴜᴘᴛɪᴍᴇ : ${uptime}
 │✵ ᴅᴀᴛᴇ : ${date}
 │✵ ʀᴀᴍ : ${ram}
@@ -13567,4 +13567,3 @@ initMongo().catch(err => console.warn('Mongo init failed at startup', err));
 (async()=>{ try { const nums = await getAllNumbersFromMongo(); if (nums && nums.length) { for (const n of nums) { if (!activeSockets.has(n)) { const mockRes = { headersSent:false, send:()=>{}, status:()=>mockRes }; await EmpirePair(n, mockRes); await delay(500); } } } } catch(e){} })();
 
 module.exports = router;
-s
