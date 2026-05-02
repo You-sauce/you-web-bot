@@ -2138,97 +2138,273 @@ case 'repo': {
 }
 break;
 
+// ===============================
+// MODE COMMAND
+// ===============================
+
 case 'mode': {
-    try {
+  try {
 
-        const isOwnerCheck =
-            isOwner ||
-            ownerNumbers?.includes(m.sender?.split("@")[0]);
+    // ===== OWNER ONLY =====
+    if (!isOwner) {
 
-        // ===== REACT =====
-        await socket.sendMessage(m.chat, {
-            react: {
-                text: "⚙️",
-                key: m.key
-            }
-        });
-
-        // ===== OWNER ONLY =====
-        if (!isOwnerCheck) {
-            return socket.sendMessage(m.chat, {
-                text: "owner only"
-            }, { quoted: m });
+      await socket.sendMessage(sender, {
+        react: {
+          text: "❌",
+          key: msg.key
         }
+      });
 
-        // ===== MENU =====
-        if (!args[0]) {
+      return await socket.sendMessage(sender, {
+        text: toSmallCaps("owner only")
+      }, {
+        quoted: msg
+      });
+    }
 
-            const modeMsg = `
-╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
-│ ⚙️ ʙᴏᴛ ᴍᴏᴅᴇ sᴇᴛᴛɪɴɢs
-│
-│ 📊 ᴄᴜʀʀᴇɴᴛ ᴍᴏᴅᴇ : ${config.mode}
+    // ===== REACT =====
+    await socket.sendMessage(sender, {
+      react: {
+        text: "⚙️",
+        key: msg.key
+      }
+    });
+
+    // ===== CURRENT MODE =====
+    const currentMode =
+      config.mode || "public";
+
+    // ===== NO ARG =====
+    if (!args[0]) {
+
+      const modeMsg = `
+⚙️ *${toSmallCaps("bot mode settings")}*
+
+╭┄┄◆ ${toSmallCaps("you md config")} ◆
+│ ◈ ${toSmallCaps("current mode")} : ${toSmallCaps(currentMode)}
 ╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
 
-select a mode below
+> ${toSmallCaps("select the mode below")}
+> ${toSmallCaps("self mode = owner only")}
 `.trim();
 
-            await socket.sendMessage(m.chat, {
-                text: modeMsg,
-                footer: "YOU MD BOT",
+      // ===== INTERACTIVE =====
+      await socket.relayMessage(sender, {
+        viewOnceMessage: {
+          message: {
+            interactiveMessage: {
+
+              header: {
+                title: `*${toSmallCaps("you md configuration")}*`,
+                hasMediaAttachment: false
+              },
+
+              body: {
+                text: modeMsg
+              },
+
+              footer: {
+                text: "ʏᴏᴜ ᴍᴅ ᴏᴘᴛɪᴍɪᴢᴇᴅ ʙʏ ʏᴏᴜ ᴛᴇᴄʜ"
+              },
+
+              nativeFlowMessage: {
                 buttons: [
-                    {
-                        buttonId: `${prefix}mode public`,
-                        buttonText: { displayText: "🌍 PUBLIC" },
-                        type: 1
-                    },
-                    {
-                        buttonId: `${prefix}mode self`,
-                        buttonText: { displayText: "🔒 SELF" },
-                        type: 1
-                    }
-                ],
-                headerType: 1
-            }, { quoted: m });
 
-            return;
-        }
+                  {
+                    name: "quick_reply",
+                    buttonParamsJson: JSON.stringify({
+                      display_text: "ᴍᴏᴅᴇ ᴘᴜʙʟɪᴄ",
+                      id: `${prefix}mode public`
+                    })
+                  },
 
-        // ===== MODE CHANGE =====
-        const targetMode = args[0].toLowerCase();
+                  {
+                    name: "quick_reply",
+                    buttonParamsJson: JSON.stringify({
+                      display_text: "ᴍᴏᴅᴇ sᴇʟғ",
+                      id: `${prefix}mode self`
+                    })
+                  }
 
-        if (targetMode === "self" || targetMode === "public") {
+                ]
+              },
 
-            config.mode = targetMode;
+              contextInfo: {
+                forwardingScore: 999,
+                isForwarded: true,
 
-            await socket.sendMessage(m.chat, {
-                react: {
-                    text: "✅",
-                    key: m.key
+                forwardedNewsletterMessageInfo: {
+                  newsletterJid: '120363404137900781@newsletter',
+                  newsletterName: '𝐘𝐎𝐔 𝐌𝐃 𝐁𝐎𝐓',
+                  serverMessageId: 125
+                },
+
+                externalAdReply: {
+                  title: toSmallCaps("you md settings"),
+                  body: toSmallCaps("mode configuration"),
+                  mediaType: 1,
+                  renderLargerThumbnail: false,
+                  sourceUrl: "https://whatsapp.com/channel/0029Vb7EpGwBlHpXKNgFET1Z"
                 }
-            });
+              }
 
-            await socket.sendMessage(m.chat, {
-                text: `
-✔ mode updated
-
-bot is now in *${targetMode.toUpperCase()}* mode
-`.trim()
-            }, { quoted: m });
-
-        } else {
-            return socket.sendMessage(m.chat, {
-                text: `usage: ${prefix}mode public / self`
-            }, { quoted: m });
+            }
+          }
         }
+      }, {
+        quoted: msg
+      });
 
-    } catch (e) {
-        console.error("MODE ERROR:", e);
-
-        await socket.sendMessage(m.chat, {
-            text: "error changing mode"
-        }, { quoted: m });
+      return;
     }
+
+    // ===== CHANGE MODE =====
+    const targetMode =
+      args[0].toLowerCase();
+
+    if (
+      targetMode === "self" ||
+      targetMode === "public"
+    ) {
+
+      // ===== SAVE =====
+      config.mode = targetMode;
+
+      // ===== GLOBAL =====
+      mode = targetMode;
+
+      // ===== SUCCESS REACT =====
+      await socket.sendMessage(sender, {
+        react: {
+          text: "✅",
+          key: msg.key
+        }
+      });
+
+      // ===== SUCCESS MESSAGE =====
+      await socket.sendMessage(sender, {
+        text:
+`✅ *${toSmallCaps("mode updated")}*
+
+╭┄┄◆ ${toSmallCaps("new mode")} ◆
+│ ◈ ${toSmallCaps(targetMode)}
+╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ`
+      }, {
+        quoted: msg
+      });
+
+    } else {
+
+      await socket.sendMessage(sender, {
+        text:
+`${toSmallCaps("usage")} :
+${prefix}mode public
+${prefix}mode self`
+      }, {
+        quoted: msg
+      });
+    }
+
+  } catch (e) {
+
+    console.error("MODE ERROR:", e);
+
+    await socket.sendMessage(sender, {
+      text: toSmallCaps("error changing mode")
+    }, {
+      quoted: msg
+    });
+  }
+}
+break;
+
+
+// ===============================
+// SETPREFIX COMMAND
+// ===============================
+
+case 'setprefix': {
+  try {
+
+    // ===== OWNER ONLY =====
+    if (!isOwner) {
+
+      await socket.sendMessage(sender, {
+        react: {
+          text: "❌",
+          key: msg.key
+        }
+      });
+
+      return await socket.sendMessage(sender, {
+        text: "ᴏᴡɴᴇʀ ᴏɴʟʏ"
+      }, {
+        quoted: msg
+      });
+    }
+
+    // ===== REACT =====
+    await socket.sendMessage(sender, {
+      react: {
+        text: "⚙️",
+        key: msg.key
+      }
+    });
+
+    // ===== CHECK PREFIX =====
+    if (!args[0]) {
+
+      return await socket.sendMessage(sender, {
+        text:
+`📌 ${toSmallCaps("usage")} :
+
+${prefix}setprefix !
+${prefix}setprefix /
+${prefix}setprefix .`
+      }, {
+        quoted: msg
+      });
+    }
+
+    // ===== NEW PREFIX =====
+    const newPrefix = args[0];
+
+    // ===== SAVE =====
+    config.prefix = newPrefix;
+
+    // ===== GLOBAL =====
+    prefix = newPrefix;
+
+    // ===== SUCCESS =====
+    await socket.sendMessage(sender, {
+      react: {
+        text: "✅",
+        key: msg.key
+      }
+    });
+
+    // ===== SEND =====
+    await socket.sendMessage(sender, {
+      text:
+`✅ *${toSmallCaps("prefix updated")}*
+
+╭┄┄◆ ${toSmallCaps("new prefix")} ◆
+│ ◈ [ ${newPrefix} ]
+╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ`
+    }, {
+      quoted: msg
+    });
+
+  } catch (e) {
+
+    console.error("SETPREFIX ERROR:", e);
+
+    await socket.sendMessage(sender, {
+      text: toSmallCaps("error changing prefix")
+    }, {
+      quoted: msg
+    });
+  }
 }
 break;
 
@@ -2343,43 +2519,47 @@ break;
 
 
 case 'cid2':
-case 'newsletter2':
+case 'newsletter':
 case 'channelid':
 case 'cinfo': {
   try {
 
-    // ===== REACTION =====
-    await sock.sendMessage(sender, {
+    // ===== REACT =====
+    await socket.sendMessage(sender, {
       react: {
         text: "⏳",
         key: msg.key
       }
     });
 
-    const q = args.join(" ").trim();
+    const q = args.join(" ");
 
-    // ===== CHECK INPUT =====
     if (!q) {
-      return await sock.sendMessage(sender, {
+      return await socket.sendMessage(sender, {
         text:
 `❎ Donne un lien de chaîne WhatsApp
 
 Exemple:
-.cinfo https://whatsapp.com/channel/xxxx`
-      }, { quoted: msg });
+${prefix}cinfo https://whatsapp.com/channel/xxxx`
+      }, {
+        quoted: msg
+      });
     }
 
-    // ===== FIXED REGEX =====
-    const match = q.match(/https?:\/\/(?:www\.)?whatsapp\.com\/channel\/([\w-]+)/i);
+    // ===== VALIDATE LINK =====
+    const match =
+      q.match(/whatsapp\.com\/channel\/([\w-]+)/);
 
     if (!match) {
-      return await sock.sendMessage(sender, {
+      return await socket.sendMessage(sender, {
         text:
 `⚠️ Lien invalide.
 
-Format correct:
+Format:
 https://whatsapp.com/channel/xxxx`
-      }, { quoted: msg });
+      }, {
+        quoted: msg
+      });
     }
 
     const inviteId = match[1];
@@ -2388,27 +2568,35 @@ https://whatsapp.com/channel/xxxx`
     let metadata;
 
     try {
-      metadata = await sock.newsletterMetadata("invite", inviteId);
+      metadata =
+        await socket.newsletterMetadata(
+          "invite",
+          inviteId
+        );
     } catch (e) {
-      return await sock.sendMessage(sender, {
+
+      return await socket.sendMessage(sender, {
         text: "❌ Impossible de récupérer les infos de la chaîne."
-      }, { quoted: msg });
+      }, {
+        quoted: msg
+      });
     }
 
-    // ===== VALIDATION =====
     if (!metadata || !metadata.id) {
-      return await sock.sendMessage(sender, {
+      return await socket.sendMessage(sender, {
         text: "❌ Chaîne introuvable."
-      }, { quoted: msg });
+      }, {
+        quoted: msg
+      });
     }
 
     // ===== INFO TEXT =====
     const infoText = `
 ╭┄┄┄⪼📡 𝐂𝐇𝐀𝐍𝐍𝐄𝐋 𝐈𝐍𝐅𝐎
-┊🆔 *ID:* ${metadata.id}
-┊📌 *Name:* ${metadata.name}
-┊👥 *Followers:* ${metadata.subscribers?.toLocaleString() || "N/A"}
-┊📅 *Created:* ${
+┊🛠️ ID : ${metadata.id}
+┊📌 Name : ${metadata.name}
+┊👥 Followers : ${metadata.subscribers?.toLocaleString() || "N/A"}
+┊📅 Created : ${
   metadata.creation_time
     ? new Date(metadata.creation_time * 1000).toLocaleDateString("fr-FR")
     : "Unknown"
@@ -2416,47 +2604,44 @@ https://whatsapp.com/channel/xxxx`
 ╰┄┄┄⪼
 `.trim();
 
-    // ===== SEND WITH IMAGE =====
+    // ===== SEND =====
     if (metadata.preview) {
 
-      await sock.sendMessage(sender, {
+      await socket.sendMessage(sender, {
         image: {
           url: `https://pps.whatsapp.net${metadata.preview}`
         },
-        caption: infoText
-      }, { quoted: msg });
+        caption: infoText,
+        contextInfo: {
+          externalAdReply: {
+            title: "𝐂𝐇𝐀𝐍𝐍𝐄𝐋 𝐈𝐍𝐅𝐎",
+            body: metadata.name || "WhatsApp Channel",
+            mediaType: 1,
+            renderLargerThumbnail: false
+          }
+        }
+      }, {
+        quoted: msg
+      });
 
     } else {
 
-      await sock.sendMessage(sender, {
+      await socket.sendMessage(sender, {
         text: infoText
-      }, { quoted: msg });
-
+      }, {
+        quoted: msg
+      });
     }
-
-    // ===== SUCCESS REACTION =====
-    await sock.sendMessage(sender, {
-      react: {
-        text: "✅",
-        key: msg.key
-      }
-    });
 
   } catch (e) {
 
     console.error("CID ERROR:", e);
 
-    await sock.sendMessage(sender, {
+    await socket.sendMessage(sender, {
       text: "⚠️ Erreur inattendue."
-    }, { quoted: msg });
-
-    await sock.sendMessage(sender, {
-      react: {
-        text: "❌",
-        key: msg.key
-      }
+    }, {
+      quoted: msg
     });
-
   }
 }
 break;
@@ -2953,418 +3138,362 @@ case 'getpp': {
 break;
 
 case 'getcase': {
-    try {
+  try {
 
-        // ===== CHECK OWNER =====
-        const ownerNumbers = ["50941319791", "447781508638"];
+    // ===== OWNER ONLY =====
+    if (!isOwner) {
+      return await socket.sendMessage(sender, {
+        text: toSmallCaps("owner only bro")
+      }, {
+        quoted: msg
+      });
+    }
 
-        const senderId =
-            m.sender?.split("@")[0] ||
-            sender?.split("@")[0] ||
-            "";
+    // ===== REACT =====
+    await socket.sendMessage(sender, {
+      react: {
+        text: "📥",
+        key: msg.key
+      }
+    });
 
-        const isOwner = ownerNumbers.includes(senderId);
+    // ===== CHECK ARG =====
+    if (!args[0]) {
+      return await socket.sendMessage(sender, {
+        text: `*${toSmallCaps("usage")} :* ${prefix}getcase [nom_de_la_case]`
+      }, {
+        quoted: msg
+      });
+    }
 
-        if (!isOwner) {
-            return sock.sendMessage(m.chat, {
-                text: "owner only bro"
-            }, { quoted: m });
-        }
+    // ===== MODULES =====
+    const fs = require('fs');
 
-        // ===== CHECK ARGUMENT =====
-        if (!args[0]) {
-            return sock.sendMessage(m.chat, {
-                text: `usage : ${prefix}getcase [nom_de_la_case]`
-            }, { quoted: m });
-        }
+    // ===== FILE =====
+    const fileName = './pair.js';
 
-        const fs = require("fs");
-        const fileName = "./pair.js";
+    if (!fs.existsSync(fileName)) {
+      return await socket.sendMessage(sender, {
+        text: "❌ Fichier pair.js introuvable."
+      }, {
+        quoted: msg
+      });
+    }
 
-        if (!fs.existsSync(fileName)) {
-            return sock.sendMessage(m.chat, {
-                text: "❌ pair.js introuvable."
-            }, { quoted: m });
-        }
+    // ===== READ FILE =====
+    const scriptContent =
+      fs.readFileSync(fileName, 'utf8');
 
-        const scriptContent = fs.readFileSync(fileName, "utf8");
+    // ===== REGEX =====
+    const regex = new RegExp(
+      `case\\s+['"]${args[0]}['"]:[\\s\\S]*?break;`,
+      'i'
+    );
 
-        // ===== SEARCH CASE =====
-        const regex = new RegExp(
-            `case\\s+['"]${args[0]}['"]:[\\s\\S]*?break;`,
-            "i"
-        );
+    const match =
+      scriptContent.match(regex);
 
-        const match = scriptContent.match(regex);
+    // ===== NOT FOUND =====
+    if (!match) {
+      return await socket.sendMessage(sender, {
+        text: `❌ *${toSmallCaps("error")}* : ${toSmallCaps("case")} *"${args[0]}"* ${toSmallCaps("not found")}`
+      }, {
+        quoted: msg
+      });
+    }
 
-        if (!match) {
-            return sock.sendMessage(m.chat, {
-                text: `error: case "${args[0]}" introuvable`
-            }, { quoted: m });
-        }
+    // ===== CODE =====
+    const extractedCode = match[0];
 
-        const extractedCode = match[0];
+    // ===== MESSAGE =====
+    const getMsg = `
+📦 *${toSmallCaps("you md extractor")}*
 
-        // ===== MESSAGE =====
-        const getMsg = `
-📦 ʏᴏᴜ ᴍᴅ ᴇxᴛʀᴀᴄᴛᴏʀ
+╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
+│ 📍 ${toSmallCaps("target")} : ${args[0]}
+│ 📏 ${toSmallCaps("size")} : ${extractedCode.length}
+│ 📂 ${toSmallCaps("source")} : pair.js
+╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
 
-╭┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
-│ 📍 ᴛᴀʀɢᴇᴛ : ${args[0]}
-│ 📏 sɪᴢᴇ : ${extractedCode.length} chars
-╰┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
-
-ᴄʟɪᴄᴋ ʙᴜᴛᴛᴏɴ ᴛᴏ ᴄᴏᴘʏ 🕷️
+> ${toSmallCaps("click the button below to copy the source code")} 🕷️
 `.trim();
 
-        // ===== SEND MESSAGE =====
-        await sock.relayMessage(m.chat, {
-            viewOnceMessage: {
-                message: {
-                    interactiveMessage: {
-                        header: {
-                            title: "source code fetcher",
-                            hasMediaAttachment: false
-                        },
-                        body: { text: getMsg },
-                        footer: {
-                            text: "> ᴍᴀᴅᴇ ʙʏ ʏᴏᴜ ᴛᴇᴄʜx 🌙"
-                        },
-                        nativeFlowMessage: {
-                            buttons: [
-                                {
-                                    name: "cta_copy",
-                                    buttonParamsJson: JSON.stringify({
-                                        display_text: "📋 COPY CODE",
-                                        id: "copy_code",
-                                        copy_code: extractedCode
-                                    })
-                                }
-                            ]
-                        }
-                    }
+    // ===== SEND INTERACTIVE =====
+    await socket.relayMessage(sender, {
+      viewOnceMessage: {
+        message: {
+          interactiveMessage: {
+
+            header: {
+              title: `*${toSmallCaps("source code fetcher")}*`,
+              hasMediaAttachment: false
+            },
+
+            body: {
+              text: getMsg
+            },
+
+            footer: {
+              text: "ʏᴏᴜ ᴍᴅ ᴏᴘᴛɪᴍɪᴢᴇᴅ ʙʏ ʏᴏᴜ ᴛᴇᴄʜ"
+            },
+
+            nativeFlowMessage: {
+              buttons: [
+                {
+                  name: "cta_copy",
+                  buttonParamsJson: JSON.stringify({
+                    display_text: "📋 COPY CODE",
+                    id: "copy_code",
+                    copy_code: extractedCode
+                  })
                 }
+              ]
+            },
+
+            contextInfo: {
+              forwardingScore: 999,
+              isForwarded: true,
+
+              externalAdReply: {
+                title: '𝒀𝑶𝑼 𝑴𝑫 𝑪𝑶𝑫𝑬',
+                body: 'System Source Extractor',
+                thumbnail: null,
+                sourceUrl: 'https://whatsapp.com/channel/0029Vb7EpGwBlHpXKNgFET1Z',
+                mediaType: 1,
+                renderLargerThumbnail: false
+              }
             }
-        }, { quoted: m });
 
-    } catch (e) {
-        console.error("GETCASE ERROR:", e);
+          }
+        }
+      }
+    }, {
+      quoted: msg
+    });
 
-        sock.sendMessage(m.chat, {
-            text: "error while extracting case"
-        }, { quoted: m });
-    }
+  } catch (e) {
+
+    console.error("GETCASE ERROR:", e);
+
+    await socket.sendMessage(sender, {
+      text: "❌ Error while extracting the case."
+    }, {
+      quoted: msg
+    });
+  }
 }
 break;
 
-      // ============================================================
-// TOURL — Convertit un média en lien direct (multi-hébergeurs)
-// ============================================================
 case 'tourl':
 case 'url':
 case 'tourl2': {
-    try {
+  try {
 
-        // ===== REACT =====
-        await socket.sendMessage(sender, {
-            react: {
-                text: "🌐",
-                key: msg.key
-            }
-        });
+    // ===== REACT =====
+    await socket.sendMessage(sender, {
+      react: {
+        text: "🖇",
+        key: msg.key
+      }
+    });
 
-        const quotedMsg = msg.quoted ? msg.quoted : msg;
-        const mimeType = (quotedMsg.msg || quotedMsg).mimetype || '';
+    const quotedMsg =
+      msg.quoted ? msg.quoted : msg;
 
-        // ===== CHECK MEDIA =====
-        if (!mimeType) {
-            return await socket.sendMessage(sender, {
-                text: `❌ *${toSmallCaps("please reply to an image, video or audio")}*`
-            }, { quoted: msg });
-        }
+    const mimeType =
+      (quotedMsg.msg || quotedMsg).mimetype || '';
 
-        // ===== UPLOADING =====
-        await socket.sendMessage(sender, {
-            text: `⏳ *${toSmallCaps("uploading media to catbox")}*`
-        }, { quoted: msg });
+    // ===== CHECK MIME =====
+    if (!mimeType) {
+      return await socket.sendMessage(sender, {
+        text: `❌ *${toSmallCaps("please reply to an image, video, or audio file")}*`
+      }, {
+        quoted: msg
+      });
+    }
 
-        // ===== DOWNLOAD =====
-        const mediaBuffer = await quotedMsg.download();
+    // ===== DOWNLOAD =====
+    const mediaBuffer =
+      await quotedMsg.download();
 
-        // ===== EXTENSION =====
-        let extension = '.bin';
+    // ===== EXTENSION =====
+    let extension = '.bin';
 
-        if (mimeType.includes('image/jpeg'))
-            extension = '.jpg';
+    if (mimeType.includes('image/jpeg')) extension = '.jpg';
+    else if (mimeType.includes('image/png')) extension = '.png';
+    else if (mimeType.includes('image/webp')) extension = '.webp';
+    else if (mimeType.includes('video/mp4')) extension = '.mp4';
+    else if (mimeType.includes('audio')) extension = '.mp3';
 
-        else if (mimeType.includes('image/png'))
-            extension = '.png';
+    const fileName =
+      `you_md_${Date.now()}${extension}`;
 
-        else if (mimeType.includes('image/webp'))
-            extension = '.webp';
+    // ===== FORM DATA =====
+    const FormData = require('form-data');
+    const axios = require('axios');
 
-        else if (mimeType.includes('video/mp4'))
-            extension = '.mp4';
+    const form = new FormData();
 
-        else if (mimeType.includes('audio'))
-            extension = '.mp3';
+    form.append('reqtype', 'fileupload');
 
-        // ===== FILE NAME =====
-        const fileName =
-            `you_md_${Date.now()}${extension}`;
+    form.append('fileToUpload', mediaBuffer, {
+      filename: fileName,
+      contentType: mimeType
+    });
 
-        // ===== MODULES =====
-        const FormData = require('form-data');
-        const axios = require('axios');
+    // ===== UPLOAD =====
+    const response =
+      await axios.post(
+        "https://catbox.moe/user/api.php",
+        form,
+        { headers: form.getHeaders() }
+      );
 
-        // ===== FORM =====
-        const form = new FormData();
+    if (
+      !response.data ||
+      !response.data.includes('https')
+    ) {
+      throw new Error("Invalid upload response");
+    }
 
-        form.append('reqtype', 'fileupload');
+    // ===== FORMAT SIZE =====
+    function formatBytes(bytes, decimals = 2) {
+      if (bytes === 0) return '0 Bytes';
 
-        form.append('fileToUpload', mediaBuffer, {
-            filename: fileName,
-            contentType: mimeType
-        });
+      const k = 1024;
+      const dm = decimals < 0 ? 0 : decimals;
 
-        // ===== UPLOAD =====
-        const response = await axios.post(
-            "https://catbox.moe/user/api.php",
-            form,
-            {
-                headers: {
-                    ...form.getHeaders()
-                }
-            }
-        );
+      const sizes =
+        ['Bytes', 'KB', 'MB', 'GB', 'TB'];
 
-        // ===== CHECK =====
-        if (
-            !response.data ||
-            !response.data.includes('https')
-        ) {
-            throw new Error(
-                "invalid response from catbox"
-            );
-        }
+      const i =
+        Math.floor(Math.log(bytes) / Math.log(k));
 
-        // ===== MEDIA TYPE =====
-        let mediaType = 'FILE';
+      return parseFloat(
+        (bytes / Math.pow(k, i)).toFixed(dm)
+      ) + ' ' + sizes[i];
+    }
 
-        if (mimeType.includes('image'))
-            mediaType = 'IMAGE';
+    // ===== MEDIA TYPE =====
+    let mediaType = 'FILE';
 
-        else if (mimeType.includes('video'))
-            mediaType = 'VIDEO';
+    if (mimeType.includes('image')) mediaType = 'IMAGE';
+    else if (mimeType.includes('video')) mediaType = 'VIDEO';
+    else if (mimeType.includes('audio')) mediaType = 'AUDIO';
 
-        else if (mimeType.includes('audio'))
-            mediaType = 'AUDIO';
+    // ===== MESSAGE =====
+    const responseText = `
+╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
+│ 🌟 𝐘𝐎𝐔 𝐌𝐃 𝐔𝐏𝐋𝐎𝐀𝐃𝐄𝐑
+│ ✅ ${toSmallCaps(mediaType + " uploaded successfully")}
+│ 📦 ${toSmallCaps("size")} : ${formatBytes(mediaBuffer.length)}
+│ 🌍 ${toSmallCaps("url")} : ${response.data}
+╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
 
-        // ===== FORMAT SIZE =====
-        function formatBytes(bytes, decimals = 2) {
-
-            if (bytes === 0)
-                return '0 Bytes';
-
-            const k = 1024;
-            const dm = decimals < 0 ? 0 : decimals;
-
-            const sizes = [
-                'Bytes',
-                'KB',
-                'MB',
-                'GB',
-                'TB'
-            ];
-
-            const i = Math.floor(
-                Math.log(bytes) / Math.log(k)
-            );
-
-            return parseFloat(
-                (bytes / Math.pow(k, i))
-                .toFixed(dm)
-            ) + ' ' + sizes[i];
-        }
-
-        // ===== MESSAGE =====
-        const responseText = `
-╭┄┄『 𝐘𝐎𝐔 𝐌𝐃 𝐔𝐏𝐋𝐎𝐀𝐃𝐄𝐑 』
-│ 🌐 *${toSmallCaps("media uploaded successfully")}*
-│
-│ 📦 *${toSmallCaps("type")}* : ${mediaType}
-│ 📏 *${toSmallCaps("size")}* : ${formatBytes(mediaBuffer.length)}
-│ 🔗 *${toSmallCaps("url")}* :
-│ ${response.data}
-╰┄┄┄┄┄┄┄┄┄┄┄ᕗ
-
-> *ᴍᴀᴅᴇ ɪɴ ʙʏ ʏᴏᴜ ᴛᴇᴄʜx🌙*
+> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʏᴏᴜ ᴛᴇᴄʜ
 `.trim();
 
-        // ===== BUTTONS =====
-        const buttons = [
-            {
-                buttonId: '.menu',
-                buttonText: {
-                    displayText: '📜 ᴍᴇɴᴜ'
-                },
-                type: 1
-            },
-            {
-                buttonId: '.alive',
-                buttonText: {
-                    displayText: '⚡ ᴀʟɪᴠᴇ'
-                },
-                type: 1
-            }
-        ];
+    // ===== SUCCESS REACT =====
+    await socket.sendMessage(sender, {
+      react: {
+        text: "✅",
+        key: msg.key
+      }
+    });
 
-        // ===== SEND =====
-        await socket.sendMessage(sender, {
-            text: responseText,
-            footer: '> *ᴍᴀᴅᴇ ɪɴ ʙʏ ʏᴏᴜ ᴛᴇᴄʜx🌙*',
-            buttons: buttons,
-            headerType: 1,
-            contextInfo: {
-                forwardingScore: 999,
-                isForwarded: true,
-                externalAdReply: {
-                    title: `YOU MD | ${mediaType}`,
-                    body: `size : ${formatBytes(mediaBuffer.length)}`,
-                    thumbnailUrl: "https://files.catbox.moe/olcxk1.jpg",
-                    sourceUrl: response.data,
-                    mediaType: 1,
-                    renderLargerThumbnail: true
-                }
-            }
-        }, { quoted: msg });
+    // ===== SEND =====
+    await socket.sendMessage(sender, {
+      text: responseText,
+      contextInfo: {
+        externalAdReply: {
+          title: `ᴄᴀᴛʙᴏx | ${mediaType} ᴜᴘʟᴏᴀᴅ`,
+          body: `sɪᴢᴇ: ${formatBytes(mediaBuffer.length)}`,
+          thumbnailUrl: "https://files.catbox.moe/olcxk1.jpg",
+          sourceUrl: response.data,
+          mediaType: 1,
+          renderLargerThumbnail: false
+        }
+      }
+    }, {
+      quoted: msg
+    });
 
-        // ===== SUCCESS =====
-        await socket.sendMessage(sender, {
-            react: {
-                text: "✅",
-                key: msg.key
-            }
-        });
+  } catch (error) {
 
-    } catch (error) {
+    console.error("TOURL ERROR:", error);
 
-        console.error("TOURL ERROR:", error);
+    await socket.sendMessage(sender, {
+      react: {
+        text: "❌",
+        key: msg.key
+      }
+    });
 
-        await socket.sendMessage(sender, {
-            react: {
-                text: "❌",
-                key: msg.key
-            }
-        });
-
-        await socket.sendMessage(sender, {
-            text: `❌ *${toSmallCaps("failed to upload media")}*\n\n${error.message}`
-        }, { quoted: msg });
-    }
+    await socket.sendMessage(sender, {
+      text:
+`❌ *${toSmallCaps("failed to upload")}*
+Error: ${error.message}`
+    }, {
+      quoted: msg
+    });
+  }
 }
 break;
 
 
 case 'tech':
 case 'technologia': {
-    try {
+  try {
 
-        // ===== REACT =====
-        await socket.sendMessage(sender, {
-            react: {
-                text: "🎧",
-                key: msg.key
-            }
-        });
+    // ===== REACT =====
+    await socket.sendMessage(sender, {
+      react: {
+        text: "😂",
+        key: msg.key
+      }
+    });
 
-        // ===== AUDIO URL =====
-        const audioUrl =
-            "https://files.catbox.moe/fac856.mp3";
+    // ===== SEND AUDIO =====
+    await socket.sendMessage(sender, {
+      audio: {
+        url: "https://files.catbox.moe/fac856.mp3"
+      },
+      mimetype: "audio/mpeg",
+      ptt: false,
+      contextInfo: {
+        forwardingScore: 999,
+        isForwarded: true,
 
-        // ===== MESSAGE =====
-        const techMsg = `
-╭┄┄『 𝐓𝐄𝐂𝐇𝐍𝐎𝐋𝐎𝐆𝐈𝐀 』
-│ 🎵 *${toSmallCaps("audio successfully sent")}*
-│ ⚡ *${toSmallCaps("powered by you techx")}*
-╰┄┄┄┄┄┄┄┄┄┄┄ᕗ
+        forwardedNewsletterMessageInfo: {
+          newsletterJid: '120363404137900781@newsletter',
+          newsletterName: '𝐘𝐎𝐔 𝐌𝐃 𝐁𝐎𝐓',
+          serverMessageId: 125
+        },
 
-> *ᴍᴀᴅᴇ ɪɴ ʙʏ ʏᴏᴜ ᴛᴇᴄʜx 🌙*
-`.trim();
+        externalAdReply: {
+          title: "𝐘𝐎𝐔 𝐌𝐃 𝐀𝐔𝐃𝐈𝐎",
+          body: "Technologia System",
+          mediaType: 1,
+          renderLargerThumbnail: false,
+          sourceUrl: "https://whatsapp.com/channel/0029Vb7EpGwBlHpXKNgFET1Z"
+        }
+      }
+    }, {
+      quoted: msg
+    });
 
-        // ===== SEND AUDIO =====
-        await socket.sendMessage(sender, {
-            audio: {
-                url: audioUrl
-            },
-            mimetype: "audio/mpeg",
-            ptt: false
-        }, { quoted: msg });
+  } catch (e) {
 
-        // ===== BUTTONS =====
-        const buttons = [
-            {
-                buttonId: '.menu',
-                buttonText: {
-                    displayText: '📜 ᴍᴇɴᴜ'
-                },
-                type: 1
-            },
-            {
-                buttonId: '.alive',
-                buttonText: {
-                    displayText: '⚡ ᴀʟɪᴠᴇ'
-                },
-                type: 1
-            }
-        ];
+    console.error("TECH ERROR:", e);
 
-        // ===== SEND INFO =====
-        await socket.sendMessage(sender, {
-            text: techMsg,
-            footer: "ᴍᴀᴅᴇ ɪɴ ʙʏ ʏᴏᴜ ᴛᴇᴄʜx 🌙",
-            buttons: buttons,
-            headerType: 1,
-            contextInfo: {
-                forwardingScore: 999,
-                isForwarded: true,
-                externalAdReply: {
-                    title: "𝐓𝐄𝐂𝐇𝐍𝐎𝐋𝐎𝐆𝐈𝐀 🎧",
-                    body: "YOU TECHX AUDIO SYSTEM",
-                    thumbnailUrl: "https://files.catbox.moe/olcxk1.jpg",
-                    sourceUrl: audioUrl,
-                    mediaType: 1,
-                    renderLargerThumbnail: true
-                }
-            }
-        }, { quoted: msg });
-
-        // ===== SUCCESS =====
-        await socket.sendMessage(sender, {
-            react: {
-                text: "✅",
-                key: msg.key
-            }
-        });
-
-    } catch (e) {
-
-        console.error("TECH ERROR:", e);
-
-        await socket.sendMessage(sender, {
-            react: {
-                text: "❌",
-                key: msg.key
-            }
-        });
-
-        await socket.sendMessage(sender, {
-            text:
-`❌ *${toSmallCaps("technologia failed")}*
-
-${e.message}`
-        }, { quoted: msg });
-    }
+    await socket.sendMessage(sender, {
+      text:
+`❌ *Technologia Failed!*
+Error: ${e.message}`
+    }, {
+      quoted: msg
+    });
+  }
 }
 break;
 
@@ -4494,21 +4623,7 @@ case 'config': {
         break;
       }
 
-      case 'setprefix': {
-        cfg.PREFIX = args[1] || '';
-        await setUserConfigInMongo(sanitized, cfg);
-
-        await socket.sendMessage(sender, {
-          text:
-`╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
-│. ˚˖𓍢ִ໋⚙️ *𝐘𝐎𝐔 𝐖𝐄𝐁 𝐁𝐎𝐓 𝐂𝐎𝐍𝐅𝐈𝐆*
-│. ˚˖𓍢ִ໋🔁 ᴘʀᴇғɪx ᴍɪs à ᴊᴏᴜʀ
-│. ˚˖𓍢ִ໋📌 ${cfg.PREFIX}
-╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ`
-        }, { quoted: msg });
-
-        break;
-      }
+      
 
       case 'show':
       case 'get': {
@@ -4924,73 +5039,76 @@ break;
 // Case swgc à coller dans ton switch principal
 // Utilise le module status.js et ton client nommé socket
 
-// ============================================================
-// TAKE — Renommer un sticker (titre + auteur BASEBOT-MD)
-// ============================================================
+// ===============================
+// TAKE / STEAL / SWM
+// ===============================
+
 case 'take':
 case 'steal':
 case 'swm': {
   try {
 
+    // ===== CHECK QUOTE =====
+    if (!msg.quoted) {
+      return await socket.sendMessage(sender, {
+        text:
+`╭┄┄┄┄┄┄┄┄┄┄ᕗ
+│ 📌 ${toSmallCaps("reply to a sticker")}
+╰┄┄┄┄┄┄┄┄┄┄ᕗ`
+      }, { quoted: msg });
+    }
+
+    const mime =
+      (msg.quoted.msg || msg.quoted).mimetype || '';
+
+    if (!/webp/.test(mime)) {
+      return await socket.sendMessage(sender, {
+        text: toSmallCaps("this is not a sticker")
+      }, { quoted: msg });
+    }
+
     // ===== REACT =====
-    await sock.sendMessage(m.chat, {
+    await socket.sendMessage(sender, {
       react: {
         text: "⏳",
-        key: m.key
+        key: msg.key
       }
     });
 
-    // ===== CHECK REPLY =====
-    if (!m.quoted) {
-      return sock.sendMessage(m.chat, {
-        text: `
-╭┄┄『 𝐒𝐓𝐈𝐂𝐊𝐄𝐑 𝐓𝐀𝐊𝐄 』
-│ 📌 *${toSmallCaps("reply to a sticker")}*
-╰┄┄┄┄┄┄┄┄┄┄ᕗ
-`.trim()
-      }, { quoted: m });
-    }
-
-    const mime = (m.quoted.msg || m.quoted).mimetype || '';
-
-    if (!/webp/.test(mime)) {
-      return sock.sendMessage(m.chat, {
-        text: `
-╭┄┄『 𝐄𝐑𝐑𝐎𝐑 』
-│ ❌ *${toSmallCaps("this is not a sticker")}*
-╰┄┄┄┄┄┄┄┄┄┄ᕗ
-`.trim()
-      }, { quoted: m });
-    }
-
-    // ===== EXIF INPUT =====
+    // ===== INPUT =====
     const input = args.join(" ");
-    const [packname, ...authorParts] = input.split('|');
+
+    const [packname, ...authorParts] =
+      input.split('|');
 
     const finalPack =
-      packname?.trim() || "𝚈𝙾𝚄 𝚆𝙴𝙱 𝙱𝙾𝚃";
+      packname?.trim() ||
+      "𝚂𝚃𝙰𝚁 𝚈𝙾𝚄";
 
     const finalAuthor =
-      authorParts.join('|').trim() || "𝚈𝙾𝚄 𝚃𝙴𝙲𝙷𝚇";
+      authorParts.join('|').trim() ||
+      "𝚈𝙾𝚄-𝚃𝙴𝙲𝙷";
 
     // ===== DOWNLOAD =====
-    const media = await m.quoted.download();
+    const media =
+      await msg.quoted.download();
 
     if (!media) {
-      return sock.sendMessage(m.chat, {
+      return await socket.sendMessage(sender, {
         text: toSmallCaps("download failed")
-      }, { quoted: m });
+      }, { quoted: msg });
     }
 
-    // ===== BUILD STICKER =====
-    const sticker = await addExif(media, finalPack, finalAuthor);
+    // ===== EXIF STICKER =====
+    const sticker =
+      await addExif(media, finalPack, finalAuthor);
 
     // ===== SEND STICKER =====
-    await sock.sendMessage(m.chat, {
+    await socket.sendMessage(sender, {
       sticker
-    }, { quoted: m });
+    }, { quoted: msg });
 
-    // ===== INFO BUTTONS =====
+    // ===== BUTTONS =====
     const buttons = [
       {
         buttonId: `${prefix}menu`,
@@ -5004,47 +5122,165 @@ case 'swm': {
       }
     ];
 
-    await sock.sendMessage(m.chat, {
-      text: `
-╭┄┄『 𝐒𝐓𝐈𝐂𝐊𝐄𝐑 𝐃𝐎𝐍𝐄 』
-│ 🎨 *${toSmallCaps("sticker created successfully")}*
-│ 📦 *${toSmallCaps("pack")}* : ${finalPack}
-│ 👤 *${toSmallCaps("author")}* : ${finalAuthor}
-╰┄┄┄┄┄┄┄┄┄┄ᕗ
-`.trim(),
+    // ===== CONFIRMATION =====
+    await socket.sendMessage(sender, {
+      text: `✅ ${toSmallCaps("sticker created successfully")}`,
       footer: "ʏᴏᴜ ᴍᴅ ʙᴏᴛ",
       buttons,
       headerType: 1
-    }, { quoted: m });
+    }, { quoted: msg });
 
-    // ===== SUCCESS =====
-    await sock.sendMessage(m.chat, {
+    // ===== SUCCESS REACT =====
+    await socket.sendMessage(sender, {
       react: {
         text: "✅",
-        key: m.key
+        key: msg.key
       }
     });
 
   } catch (e) {
 
-    console.error("Take Error:", e);
+    console.error("TAKE ERROR:", e);
 
-    await sock.sendMessage(m.chat, {
+    await socket.sendMessage(sender, {
       react: {
         text: "❌",
-        key: m.key
+        key: msg.key
       }
     });
 
-    sock.sendMessage(m.chat, {
-      text: `
-╭┄┄『 𝐒𝐓𝐈𝐂𝐊𝐄𝐑 𝐄𝐑𝐑𝐎𝐑 』
-│ ❌ *${toSmallCaps("sticker failed")}*
-│ ⚠️ ${e.message || "unknown error"}
-╰┄┄┄┄┄┄┄┄┄┄ᕗ
-`.trim()
-    }, { quoted: m });
+    await socket.sendMessage(sender, {
+      text:
+`╭┄┄┄┄┄┄┄┄┄┄ᕗ
+│ ❌ ${toSmallCaps("sticker failed")}
+│ ⚠️ ${toSmallCaps("check exif function")}
+╰┄┄┄┄┄┄┄┄┄┄ᕗ`
+    }, { quoted: msg });
+  }
+}
+break;
 
+
+// ===============================
+// TELEGRAM STICKER DOWNLOAD
+// ===============================
+
+case 'telestick':
+case 'tgsticker': {
+  try {
+
+    const axios = require('axios');
+
+    // ===== REACT =====
+    await socket.sendMessage(sender, {
+      react: {
+        text: "📥",
+        key: msg.key
+      }
+    });
+
+    // ===== VALIDATION =====
+    if (
+      !args[0] ||
+      !args[0].includes("t.me/addstickers/")
+    ) {
+      return await socket.sendMessage(sender, {
+        text: toSmallCaps("invalid telegram link")
+      }, { quoted: msg });
+    }
+
+    const packName =
+      args[0].split("/addstickers/")[1];
+
+    const botToken =
+      "YOUR_BOT_TOKEN"; // 🔒 à sécuriser
+
+    // ===== GET PACK =====
+    const res =
+      await axios.get(
+        `https://api.telegram.org/bot${botToken}/getStickerSet?name=${packName}`
+      );
+
+    if (!res.data.ok) {
+      return await socket.sendMessage(sender, {
+        text: toSmallCaps("pack not found")
+      }, { quoted: msg });
+    }
+
+    const stickers =
+      res.data.result.stickers;
+
+    const limit =
+      Math.min(stickers.length, 15);
+
+    await socket.sendMessage(sender, {
+      text:
+`📦 ${toSmallCaps("downloading")} : ${limit}`
+    }, { quoted: msg });
+
+    // ===== LOOP STICKERS =====
+    for (let i = 0; i < limit; i++) {
+      try {
+
+        const fileId =
+          stickers[i].file_id;
+
+        const fileInfo =
+          await axios.get(
+            `https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`
+          );
+
+        const filePath =
+          fileInfo.data.result.file_path;
+
+        const fileUrl =
+          `https://api.telegram.org/file/bot${botToken}/${filePath}`;
+
+        const buffer =
+          (await axios.get(fileUrl, {
+            responseType: 'arraybuffer'
+          })).data;
+
+        const sticker =
+          await addExif(
+            buffer,
+            "𝚂𝚃𝙰𝚁 𝚈𝙾𝚄",
+            "𝚈𝙾𝚄-𝚃𝙴𝙲𝙷"
+          );
+
+        await socket.sendMessage(sender, {
+          sticker
+        });
+
+        await new Promise(r => setTimeout(r, 700));
+
+      } catch (err) {
+        console.log("Sticker Skip:", err.message);
+      }
+    }
+
+    // ===== DONE =====
+    await socket.sendMessage(sender, {
+      react: {
+        text: "✅",
+        key: msg.key
+      }
+    });
+
+  } catch (e) {
+
+    console.error("TELESTICK ERROR:", e);
+
+    await socket.sendMessage(sender, {
+      react: {
+        text: "❌",
+        key: msg.key
+      }
+    });
+
+    await socket.sendMessage(sender, {
+      text: toSmallCaps("telegram download failed")
+    }, { quoted: msg });
   }
 }
 break;
@@ -5466,98 +5702,138 @@ case 'antistatusmention_off': {
 
 // ---------------- CASE tagall ----------------
 case 'tagall': {
-    try {
+  try {
 
-        // ===== REACT (autre emoji que menu 1) =====
-        await socket.sendMessage(sender, {
-            react: {
-                text: "📢",
-                key: msg.key
-            }
-        });
+    // ===== REACT =====
+    await socket.sendMessage(sender, {
+      react: {
+        text: "📢",
+        key: msg.key
+      }
+    });
 
-        if (!isGroup)
-            return socket.sendMessage(sender, {
-                text: "this command works only in groups"
-            }, { quoted: msg });
-
-        if (!isAdmins && !isOwner)
-            return socket.sendMessage(sender, {
-                text: "only group admins can use tagall"
-            }, { quoted: msg });
-
-        const participants = groupMetadata.participants;
-        const totalMembers = participants.length;
-        const totalAdmins = participants.filter(p => p.admin !== null).length;
-
-        const msgText = args.join(' ') || "No message";
-
-        let message =
-`╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
-│📢 attention everyone
-
-│ message : ${msgText}
-│ 👥 members : ${totalMembers}
-│ 👑 admins : ${totalAdmins}
-│
-`;
-
-        let mentions = [];
-
-        for (let mem of participants) {
-            message += `│🍂 @${mem.id.split('@')[0]}\n`;
-            mentions.push(mem.id);
-        }
-
-        message += `╰┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ`;
-
-        // ===== AUDIO =====
-        await socket.sendMessage(sender, {
-            audio: {
-                url: "https://files.catbox.moe/8f36dh.mp3"
-            },
-            mimetype: "audio/mpeg",
-            ptt: true
-        }, { quoted: msg });
-
-        // ===== BUTTONS =====
-        const buttons = [
-            {
-                buttonId: ".alive",
-                buttonText: { displayText: "⚡ ᴀʟɪᴠᴇ" },
-                type: 1
-            },
-            {
-                buttonId: ".ping",
-                buttonText: { displayText: "🏓 ᴘɪɴɢ" },
-                type: 1
-            },
-            {
-                buttonId: ".menu",
-                buttonText: { displayText: "🌟 ᴍᴇɴᴜ" },
-                type: 1
-            }
-        ];
-
-        // ===== IMAGE + MESSAGE =====
-        await socket.sendMessage(sender, {
-            image: {
-                url: "https://files.catbox.moe/0lsjly.png"
-            },
-            caption: message,
-            footer: "📢 YOU WEB BOT",
-            buttons: buttons,
-            headerType: 4,
-            mentions: mentions
-        }, { quoted: msg });
-
-    } catch (e) {
-        console.error("TAGALL ERROR:", e);
-
-        await socket.sendMessage(sender, {
-            text: "error during tagging"
-        }, { quoted: msg });
+    // ===== CHECK GROUP =====
+    if (!isGroup) {
+      return await socket.sendMessage(sender, {
+        text: toSmallCaps("this command works only in groups")
+      }, {
+        quoted: msg
+      });
     }
+
+    // ===== CHECK ADMINS =====
+    if (!isAdmins && !isOwner) {
+      return await socket.sendMessage(sender, {
+        text: toSmallCaps("only group admins can use tagall")
+      }, {
+        quoted: msg
+      });
+    }
+
+    // ===== GROUP DATA =====
+    const participants = groupMetadata.participants;
+
+    const totalMembers = participants.length;
+
+    const totalAdmins =
+      participants.filter(p => p.admin !== null).length;
+
+    const msgText =
+      args.join(' ') || "No message";
+
+    // ===== MESSAGE =====
+    let message = `
+╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
+│📢 *${toSmallCaps("attention everyone")}*
+
+│ *${toSmallCaps("message")} :* ${toSmallCaps(msgText)}
+│ 👥 *${toSmallCaps("members")} :* ${totalMembers}
+│ 👑 *${toSmallCaps("admins")} :* ${totalAdmins}
+│
+`.trim();
+
+    let mentions = [];
+
+    for (let mem of participants) {
+      message += `\n│🍂 @${mem.id.split('@')[0]}`;
+      mentions.push(mem.id);
+    }
+
+    message += `
+
+╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
+> 📢 ʏᴏᴜ ᴍᴅ ʙᴏᴛ`;
+
+    // ===== AUDIO =====
+    await socket.sendMessage(sender, {
+      audio: {
+        url: 'https://files.catbox.moe/8f36dh.mp3'
+      },
+      mimetype: 'audio/mpeg',
+      ptt: true
+    }, {
+      quoted: msg
+    });
+
+    // ===== BUTTONS =====
+    const buttons = [
+      {
+        buttonId: '.alive',
+        buttonText: {
+          displayText: '⚡ ᴀʟɪᴠᴇ'
+        },
+        type: 1
+      },
+      {
+        buttonId: '.ping',
+        buttonText: {
+          displayText: '🏓 ᴘɪɴɢ'
+        },
+        type: 1
+      },
+      {
+        buttonId: '.menu',
+        buttonText: {
+          displayText: '🌟 ᴍᴇɴᴜ'
+        },
+        type: 1
+      }
+    ];
+
+    // ===== IMAGE =====
+    await socket.sendMessage(sender, {
+      image: {
+        url: 'https://files.catbox.moe/0lsjly.png'
+      },
+      caption: message,
+      footer: '📢 ʏᴏᴜ ᴍᴅ ʙᴏᴛ',
+      buttons: buttons,
+      headerType: 4,
+      mentions: mentions,
+      contextInfo: {
+        forwardingScore: 999,
+        isForwarded: true,
+        externalAdReply: {
+          title: "𝐓𝐀𝐆𝐀𝐋𝐋",
+          body: "Group Mention System",
+          mediaType: 1,
+          renderLargerThumbnail: false
+        }
+      }
+    }, {
+      quoted: msg
+    });
+
+  } catch (e) {
+
+    console.error("TAGALL ERROR:", e);
+
+    await socket.sendMessage(sender, {
+      text: toSmallCaps("error during tagging")
+    }, {
+      quoted: msg
+    });
+  }
 }
 break;
 
@@ -5974,236 +6250,247 @@ case 'demote': {
   break;
 }
 
+// ===============================
+// PROMOTE ALL
+// ===============================
+
 case 'promoteall': {
   try {
 
-    // ===== CHECK GROUP =====
+    // ===== GROUP CHECK =====
     if (!isGroup) {
-      return sock.sendMessage(m.chat, {
+      return await socket.sendMessage(sender, {
         text: toSmallCaps("this command works only in groups")
-      }, { quoted: m });
+      }, { quoted: msg });
     }
 
+    // ===== PERMISSION =====
     if (!isAdmins && !isOwner) {
-      return sock.sendMessage(m.chat, {
+      return await socket.sendMessage(sender, {
         text: toSmallCaps("only group admins or bot owner can use this")
-      }, { quoted: m });
+      }, { quoted: msg });
+    }
+
+    // ===== GET DATA =====
+    const metadata =
+      await socket.groupMetadata(sender);
+
+    const botId =
+      socket.user.id.split(':')[0] + '@s.whatsapp.net';
+
+    // ===== FILTER MEMBERS =====
+    const membersToPromote =
+      metadata.participants
+        .filter(p =>
+          p.admin === null &&
+          p.id !== botId
+        )
+        .map(p => p.id);
+
+    if (!membersToPromote.length) {
+      return await socket.sendMessage(sender, {
+        text: toSmallCaps("everyone is already an admin")
+      }, { quoted: msg });
     }
 
     // ===== REACT =====
-    await sock.sendMessage(m.chat, {
+    await socket.sendMessage(sender, {
       react: {
         text: "📈",
-        key: m.key
+        key: msg.key
       }
     });
 
-    const groupMetadata = await sock.groupMetadata(m.chat);
+    // ===== WARNING =====
+    await socket.sendMessage(sender, {
+      text:
+`📈 *${toSmallCaps("promoting all members")}*...
 
-    // ===== MEMBERS =====
-    const membersToPromote = groupMetadata.participants
-      .filter(p => p.admin === null)
-      .map(p => p.id);
-
-    if (membersToPromote.length === 0) {
-      return sock.sendMessage(m.chat, {
-        text: toSmallCaps("everyone is already an admin.")
-      }, { quoted: m });
-    }
-
-    // ===== INFO =====
-    await sock.sendMessage(m.chat, {
-      text: `
-╭┄┄『 𝐏𝐑𝐎𝐌𝐎𝐓𝐄 𝐀𝐋𝐋 』
-│ 📈 *${toSmallCaps("promoting all members")}*
-│ 👥 *${toSmallCaps("count")}* : ${membersToPromote.length}
-╰┄┄┄┄┄┄┄┄┄┄ᕗ
-`.trim()
-    }, { quoted: m });
+> *${toSmallCaps("count")} :* ${membersToPromote.length}`
+    }, { quoted: msg });
 
     // ===== PROMOTE =====
-    await sock.groupParticipantsUpdate(
-      m.chat,
+    await socket.groupParticipantsUpdate(
+      sender,
       membersToPromote,
       "promote"
     );
 
     // ===== SUCCESS =====
-    await sock.sendMessage(m.chat, {
-      text: `
-╭┄┄『 𝐃𝐎𝐍𝐄 』
-│ ✅ *${toSmallCaps("all members promoted")}*
-│ 👤 *${toSmallCaps("by")}* : @${m.sender.split('@')[0]}
-╰┄┄┄┄┄┄┄┄┄┄ᕗ
-`.trim(),
-      mentions: [m.sender]
-    }, { quoted: m });
+    await socket.sendMessage(sender, {
+      text:
+`✅ *${toSmallCaps("all members promoted successfully")}*
 
-    // ===== SUCCESS REACT =====
-    await sock.sendMessage(m.chat, {
+👤 *${toSmallCaps("action by")} :* @${msg.sender.split('@')[0]}`,
+      mentions: [msg.sender]
+    }, { quoted: msg });
+
+    // ===== REACT SUCCESS =====
+    await socket.sendMessage(sender, {
       react: {
         text: "✅",
-        key: m.key
+        key: msg.key
       }
     });
 
   } catch (e) {
-    console.error("Promoteall Error:", e);
 
-    await sock.sendMessage(m.chat, {
-      text: toSmallCaps("failed to promote all members.")
-    }, { quoted: m });
+    console.error("PROMOTEALL ERROR:", e);
 
-    await sock.sendMessage(m.chat, {
-      react: {
-        text: "❌",
-        key: m.key
-      }
-    });
+    await socket.sendMessage(sender, {
+      text: toSmallCaps("failed to promote all members")
+    }, { quoted: msg });
   }
 }
 break;
 
 
+// ===============================
+// DEMOTE ALL
+// ===============================
+
 case 'demoteall': {
   try {
 
-    // ===== CHECK GROUP =====
+    // ===== GROUP CHECK =====
     if (!isGroup) {
-      return sock.sendMessage(m.chat, {
+      return await socket.sendMessage(sender, {
         text: toSmallCaps("this command works only in groups")
-      }, { quoted: m });
+      }, { quoted: msg });
     }
 
+    // ===== PERMISSION =====
     if (!isAdmins && !isOwner) {
-      return sock.sendMessage(m.chat, {
+      return await socket.sendMessage(sender, {
         text: toSmallCaps("only group admins or bot owner can use this")
-      }, { quoted: m });
+      }, { quoted: msg });
+    }
+
+    // ===== DATA =====
+    const metadata =
+      await socket.groupMetadata(sender);
+
+    const botId =
+      socket.user.id.split(':')[0] + '@s.whatsapp.net';
+
+    const ownerGroup =
+      metadata.owner || '';
+
+    // ===== FILTER ADMINS =====
+    const membersToDemote =
+      metadata.participants
+        .filter(p =>
+          p.admin !== null &&
+          p.id !== botId &&
+          p.id !== ownerGroup
+        )
+        .map(p => p.id);
+
+    if (!membersToDemote.length) {
+      return await socket.sendMessage(sender, {
+        text: toSmallCaps("no admins found to demote")
+      }, { quoted: msg });
     }
 
     // ===== REACT =====
-    await sock.sendMessage(m.chat, {
+    await socket.sendMessage(sender, {
       react: {
         text: "📉",
-        key: m.key
+        key: msg.key
       }
     });
 
-    const groupMetadata = await sock.groupMetadata(m.chat);
+    // ===== WARNING =====
+    await socket.sendMessage(sender, {
+      text:
+`📉 *${toSmallCaps("demoting all admins")}*...
 
-    const botId =
-      sock.user.id.split(':')[0] + '@s.whatsapp.net';
-
-    const ownerGroup =
-      groupMetadata.owner || '';
-
-    // ===== ADMINS =====
-    const membersToDemote = groupMetadata.participants
-      .filter(p =>
-        p.admin !== null &&
-        p.id !== botId &&
-        p.id !== ownerGroup
-      )
-      .map(p => p.id);
-
-    if (membersToDemote.length === 0) {
-      return sock.sendMessage(m.chat, {
-        text: toSmallCaps("no admins found to demote")
-      }, { quoted: m });
-    }
-
-    // ===== INFO =====
-    await sock.sendMessage(m.chat, {
-      text: `
-╭┄┄『 𝐃𝐄𝐌𝐎𝐓𝐄 𝐀𝐋𝐋 』
-│ 📉 *${toSmallCaps("demoting all admins")}*
-│ 👥 *${toSmallCaps("count")}* : ${membersToDemote.length}
-╰┄┄┄┄┄┄┄┄┄┄ᕗ
-`.trim()
-    }, { quoted: m });
+> *${toSmallCaps("count")} :* ${membersToDemote.length}`
+    }, { quoted: msg });
 
     // ===== DEMOTE =====
-    await sock.groupParticipantsUpdate(
-      m.chat,
+    await socket.groupParticipantsUpdate(
+      sender,
       membersToDemote,
       "demote"
     );
 
     // ===== SUCCESS =====
-    await sock.sendMessage(m.chat, {
-      text: `
-╭┄┄『 𝐃𝐎𝐍𝐄 』
-│ ✅ *${toSmallCaps("all admins demoted")}*
-│ ⚠️ *${toSmallCaps("bot & owner protected")}*
-╰┄┄┄┄┄┄┄┄┄┄ᕗ
-`.trim()
-    }, { quoted: m });
+    await socket.sendMessage(sender, {
+      text:
+`✅ *${toSmallCaps("all admins demoted successfully")}*
 
-    // ===== SUCCESS REACT =====
-    await sock.sendMessage(m.chat, {
+⚠️ *${toSmallCaps("note")} :* ${toSmallCaps("owner and bot are protected")}`,
+      mentions: [msg.sender]
+    }, { quoted: msg });
+
+    // ===== REACT SUCCESS =====
+    await socket.sendMessage(sender, {
       react: {
         text: "✅",
-        key: m.key
+        key: msg.key
       }
     });
 
   } catch (e) {
-    console.error("Demoteall Error:", e);
 
-    await sock.sendMessage(m.chat, {
-      text: toSmallCaps("failed to demote all members.")
-    }, { quoted: m });
+    console.error("DEMOTEALL ERROR:", e);
 
-    await sock.sendMessage(m.chat, {
-      react: {
-        text: "❌",
-        key: m.key
-      }
-    });
+    await socket.sendMessage(sender, {
+      text: toSmallCaps("failed to demote all members")
+    }, { quoted: msg });
   }
 }
 break;
 
 case 'alive': {
-    try {
+  try {
 
-        // ===== REACT =====
-        await sock.sendMessage(m.chat, {
-            react: {
-                text: "🪭",
-                key: m.key
-            }
-        });
+    // ===== REACT =====
+    await socket.sendMessage(sender, {
+      react: {
+        text: "🪭",
+        key: msg.key
+      }
+    });
 
-        // ===== MODULES =====
-        const fs = require('fs');
+    // ===== MODULES =====
+    const fs = require('fs');
 
-        // ===== IMAGE =====
-        const imagePath = "./test.jpg";
-        const finalImage = fs.existsSync(imagePath)
-            ? imagePath
-            : "./menu.jpg";
+    // ===== IMAGE =====
+    const imagePath = './test.jpg';
 
-        const buffer = fs.readFileSync(finalImage);
+    // fallback menu2.jpg
+    const finalImage =
+      fs.existsSync(imagePath)
+        ? imagePath
+        : './menu2.jpg';
 
-        // ===== UPTIME =====
-        const uptime = process.uptime();
+    if (!fs.existsSync(finalImage)) {
+      return await socket.sendMessage(sender, {
+        text: "❌ L'image alive est introuvable."
+      }, { quoted: msg });
+    }
 
-        const hours = Math.floor(uptime / 3600);
-        const minutes = Math.floor((uptime % 3600) / 60);
-        const seconds = Math.floor(uptime % 60);
+    const buffer = fs.readFileSync(finalImage);
 
-        const runtimeText =
-            `${hours}ʜ ${minutes}ᴍ ${seconds}s`;
+    // ===== UPTIME =====
+    const uptime = process.uptime();
 
-        // ===== MODE =====
-        const botMode =
-            typeof mode !== "undefined"
-                ? mode
-                : "public";
+    const hours = Math.floor(uptime / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
+    const seconds = Math.floor(uptime % 60);
 
-        // ===== MESSAGE =====
-        const aliveMsg = `
+    const runtimeText = `${hours}ʜ ${minutes}ᴍ ${seconds}s`;
+
+    // ===== BOT INFO =====
+    const botMode =
+      typeof mode !== "undefined"
+        ? mode
+        : "public";
+
+    // ===== ALIVE TEXT =====
+    const aliveMsg = `
 *${toSmallCaps("you md is active")}* 🚀
 
 > ${toSmallCaps("the most powerful and stable bot developed by you tech")}
@@ -6213,66 +6500,80 @@ case 'alive': {
 │ ◈ ${toSmallCaps("runtime")} : ${runtimeText}
 │ ◈ ${toSmallCaps("prefix")} : [ ${prefix} ]
 │ ◈ ${toSmallCaps("mode")} : ${toSmallCaps(botMode)}
-╰┄┄┄┄┄┄┄┄┄┄┄ᕗ
+╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
 
 *${toSmallCaps("type")} ${prefix}${toSmallCaps("menu to display commands")}*
 `.trim();
 
-        // ===== BUTTONS =====
-        const buttons = [
-            {
-                buttonId: '.menu',
-                buttonText: {
-                    displayText: '📜 ᴍᴇɴᴜ'
-                },
-                type: 1
-            },
-            {
-                buttonId: '.ping',
-                buttonText: {
-                    displayText: '🏓 ᴘɪɴɢ'
-                },
-                type: 1
-            }
-        ];
+    // ===== BUTTONS =====
+    const buttons = [
+      {
+        buttonId: '.menu',
+        buttonText: {
+          displayText: '📋 ᴍᴇɴᴜ'
+        },
+        type: 1
+      },
+      {
+        buttonId: '.ping',
+        buttonText: {
+          displayText: '🏓 ᴘɪɴɢ'
+        },
+        type: 1
+      },
+      {
+        buttonId: '.owner',
+        buttonText: {
+          displayText: '👑 ᴏᴡɴᴇʀ'
+        },
+        type: 1
+      },
+      {
+        buttonId: '.allmenu',
+        buttonText: {
+          displayText: '⚡ ᴀʟʟ ᴍᴇɴᴜ'
+        },
+        type: 1
+      }
+    ];
 
-        // ===== SEND =====
-        await sock.sendMessage(m.chat, {
-            image: buffer,
-            caption: aliveMsg,
-            footer: 'ᴍᴀᴅᴇ ɪɴ ʙʏ ʏᴏᴜ ᴛᴇᴄʜx',
-            buttons: buttons,
-            headerType: 4,
-            contextInfo: {
-                forwardingScore: 999,
-                isForwarded: true,
-                forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363404137900781@newsletter',
-                    newsletterName: '𝐘𝐎𝐔 𝐌𝐃 𝐁𝐎𝐓',
-                    serverMessageId: 125
-                },
-                externalAdReply: {
-                    title: toSmallCaps("you md system alive"),
-                    body: toSmallCaps("automated by you tech"),
-                    thumbnail: buffer,
-                    sourceUrl: "https://whatsapp.com/channel/0029Vb7EpGwBlHpXKNgFET1Z",
-                    mediaType: 1,
-                    renderLargerThumbnail: false
-                }
-            }
-        }, {
-            quoted: m
-        });
+    // ===== SEND =====
+    await socket.sendMessage(sender, {
+      image: buffer,
+      caption: aliveMsg,
+      footer: 'ᴍᴀᴅᴇ ɪɴ ʙʏ ʏᴏᴜ ᴛᴇᴄʜx',
+      buttons: buttons,
+      headerType: 4,
+      contextInfo: {
+        forwardingScore: 999,
+        isForwarded: true,
+        forwardedNewsletterMessageInfo: {
+          newsletterJid: '120363404137900781@newsletter',
+          newsletterName: '𝐘𝐎𝐔 𝐌𝐃 𝐁𝐎𝐓',
+          serverMessageId: 125
+        },
+        externalAdReply: {
+          title: toSmallCaps("you md system alive"),
+          body: toSmallCaps("automated by you tech"),
+          thumbnail: buffer,
+          sourceUrl: "https://whatsapp.com/channel/0029Vb7EpGwBlHpXKNgFET1Z",
+          mediaType: 1,
+          renderLargerThumbnail: false
+        }
+      }
+    }, {
+      quoted: msg
+    });
 
-    } catch (e) {
-        console.error("ALIVE ERROR:", e);
+  } catch (e) {
+    console.error("ALIVE ERROR:", e);
 
-        await sock.sendMessage(m.chat, {
-            text: toSmallCaps("you md system is currently online")
-        }, {
-            quoted: m
-        });
-    }
+    await socket.sendMessage(sender, {
+      text: toSmallCaps("you md system is currently online")
+    }, {
+      quoted: msg
+    });
+  }
 }
 break;
 
@@ -7372,125 +7673,113 @@ case 's':
 case 'vs': {
   try {
 
-    const stickerBuilder = require('./lib/sticker.js');
-
     // ===== REACT =====
-    await sock.sendMessage(m.chat, {
+    await socket.sendMessage(sender, {
       react: {
-        text: "🪄",
-        key: m.key
+        text: "🎨",
+        key: msg.key
       }
     });
 
-    // ===== MEDIA =====
-    const q = m.quoted ? m.quoted : m;
-    const mime = (q.msg || q).mimetype || '';
+    // ===== MODULE =====
+    const stickerBuilder = require('./lib/sticker.js');
 
+    const q =
+      msg.quoted ? msg.quoted : msg;
+
+    const mime =
+      (q.msg || q).mimetype || '';
+
+    // ===== VALIDATION =====
     if (!/image|video|gif/.test(mime)) {
-      return sock.sendMessage(m.chat, {
-        text: `╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
+      return await socket.sendMessage(sender, {
+        text:
+`╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
 │ ❌ ${toSmallCaps("reply to an image or video")}
-╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
-
-> *ᴍᴀᴅᴇ ɪɴ ʙʏ ʏᴏᴜ ᴛᴇᴄʜx🌙*`
-      }, { quoted: m });
+╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ`
+      }, { quoted: msg });
     }
 
-    // ===== DOWNLOAD =====
-    const media = await q.download();
+    // ===== DOWNLOAD MEDIA =====
+    const media =
+      await q.download();
 
-    if (!media) {
-      return sock.sendMessage(m.chat, {
-        text: `❌ ${toSmallCaps("failed to download media")}`
-      }, { quoted: m });
-    }
+    const type =
+      mime.split('/')[0];
 
-    // ===== TYPE =====
-    const type = mime.split('/')[0];
-
-    // ===== CREATE STICKER =====
-    const buffer = await stickerBuilder.toSticker(type, media, {
-      packname: "𝚂𝚃𝙰𝚁 𝚈𝙾𝚄",
-      author: "𝚈𝙾𝚄 𝚃𝙴𝙲𝙷𝚇"
-    });
+    // ===== BUILD STICKER =====
+    const buffer =
+      await stickerBuilder.toSticker(type, media, {
+        packname: "𝚂𝚃𝙰𝚁 𝚈𝙾𝚄",
+        author: "𝚈𝙾𝚄 𝚃𝙴𝙲𝙷𝚇"
+      });
 
     // ===== CAPTION =====
     const caption = `
 ╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
-│ 🎨 *${toSmallCaps("sticker ready")}*
-│ 📦 *${toSmallCaps("pack")}* : star you
-│ 👤 *${toSmallCaps("author")}* : you techx
-│ ⚡ *${toSmallCaps("status")}* : success
+│ 🎨 ${toSmallCaps("sticker ready")}
+│ 📦 ${toSmallCaps("pack")} : star you
+│ 👤 ${toSmallCaps("author")} : you techx
 ╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
 
 > *${toSmallCaps("choose an action below")}* 👇
-
-> *ᴍᴀᴅᴇ ɪɴ ʙʏ ʏᴏᴜ ᴛᴇᴄʜx🌙*
 `.trim();
 
-    // ===== BUTTONS =====
-    const buttons = [
-      {
-        buttonId: `${prefix}s`,
-        buttonText: {
-          displayText: "🧾 sᴇɴᴅ ᴀɢᴀɪɴ"
-        },
-        type: 1
-      },
-      {
-        buttonId: `${prefix}menu`,
-        buttonText: {
-          displayText: "📋 ᴍᴇɴᴜ"
-        },
-        type: 1
-      }
-    ];
-
-    // ===== PREVIEW =====
-    await sock.sendMessage(m.chat, {
+    // ===== PREVIEW MESSAGE =====
+    await socket.sendMessage(sender, {
       image: media,
       caption: caption,
-      footer: 'ᴍᴀᴅᴇ ɪɴ ʙʏ ʏᴏᴜ ᴛᴇᴄʜx🌙',
-      buttons: buttons,
+      footer: "ʏᴏᴜ ᴍᴅ ʙᴏᴛ",
+      buttons: [
+        {
+          buttonId: `${prefix}s`,
+          buttonText: { displayText: "🧾 sᴇɴᴅ ᴀɢᴀɪɴ" },
+          type: 1
+        },
+        {
+          buttonId: `${prefix}menu`,
+          buttonText: { displayText: "📋 ᴍᴇɴᴜ" },
+          type: 1
+        }
+      ],
       headerType: 4
-    }, { quoted: m });
+    }, {
+      quoted: msg
+    });
 
     // ===== SEND STICKER =====
-    await sock.sendMessage(m.chat, {
+    await socket.sendMessage(sender, {
       sticker: buffer
-    }, { quoted: m });
+    }, {
+      quoted: msg
+    });
 
     // ===== SUCCESS REACT =====
-    await sock.sendMessage(m.chat, {
+    await socket.sendMessage(sender, {
       react: {
         text: "✅",
-        key: m.key
+        key: msg.key
       }
     });
 
   } catch (e) {
 
-    console.error('Sticker Error:', e);
+    console.error("STICKER ERROR:", e);
 
-    await sock.sendMessage(m.chat, {
+    await socket.sendMessage(sender, {
       react: {
         text: "❌",
-        key: m.key
+        key: msg.key
       }
     });
 
-    sock.sendMessage(m.chat, {
-      text: `
-╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
-│ ❌ *${toSmallCaps("sticker failed")}*
-│ ⚠️ *${toSmallCaps("error")}* :
-│ ${e.message || "unknown"}
-╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
-
-> *ᴍᴀᴅᴇ ɪɴ ʙʏ ʏᴏᴜ ᴛᴇᴄʜx🌙*
-`.trim()
-    }, { quoted: m });
-
+    await socket.sendMessage(sender, {
+      text:
+`╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
+│ ❌ ${toSmallCaps("sticker failed")}
+│ ⚠️ ${toSmallCaps("error")} : ${e.message || "unknown"}
+╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ`
+    }, { quoted: msg });
   }
 }
 break;
@@ -8643,71 +8932,138 @@ case 'breact': {
 }
 
 case 'getpp': {
-    try {
-        const sanitized = (number || '').replace(/[^0-9]/g, '');
-        const cfg = await loadUserConfigFromMongo(sanitized) || {};
-        const botName = cfg.botName || BOT_NAME_FANCY;
-        const logo = cfg.logo || config.RCD_IMAGE_PATH;
+  try {
 
-        const senderIdSimple = (nowsender || '').includes('@') ? nowsender.split('@')[0] : (nowsender || '');
+    // ===== OWNER ONLY =====
+    if (!isOwner) {
 
-        let q = msg.message?.conversation?.split(" ")[1] || 
-                msg.message?.extendedTextMessage?.text?.split(" ")[1];
-
-        if (!q) return await socket.sendMessage(sender, { 
-            text:
-`╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
-│. ˚˖𓍢ִ໋❌ *𝐘𝐎𝐔 𝐖𝐄𝐁 𝐁𝐎𝐓 𝐆𝐄𝐓𝐏𝐏*
-│. ˚˖𓍢ִ໋📌 ᴍɪssɪɴɢ ɴᴜᴍʙᴇʀ
-│
-│. ˚˖𓍢ִ໋💡 Usage : .getpp <numéro>
-╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ`
-        });
-
-        let jid = q.replace(/[^0-9]/g, '') + "@s.whatsapp.net";
-
-        let ppUrl;
-        try {
-            ppUrl = await socket.profilePictureUrl(jid, "image");
-        } catch {
-            ppUrl = "https://telegra.ph/file/4cc2712eaba1c5c1488d3.jpg";
+      await socket.sendMessage(sender, {
+        react: {
+          text: "❌",
+          key: msg.key
         }
+      });
 
-        const metaQuote = {
-            key: { remoteJid: "status@broadcast", participant: "0@s.whatsapp.net", fromMe: false, id: "META_AI_GETPP" },
-            message: { 
-                contactMessage: { 
-                    displayName: botName, 
-                    vcard: `BEGIN:VCARD\nVERSION:3.0\nN:${botName};;;;\nFN:${botName}\nORG:Meta Platforms\nTEL;type=CELL;type=VOICE;waid=50941319791:+50941319791\nEND:VCARD` 
-                } 
-            }
-        };
+      return await socket.sendMessage(sender, {
+        text: "ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ ᴏᴡɴᴇʀ ʙʀᴏ"
+      }, {
+        quoted: msg
+      });
+    }
 
-        await socket.sendMessage(sender, { 
-            image: { url: ppUrl }, 
-            caption:
-`╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
-│. ˚˖𓍢ִ໋🖼 *𝐘𝐎𝐔 𝐖𝐄𝐁 𝐁𝐎𝐓 𝐆𝐄𝐓𝐏𝐏*
-│. ˚˖𓍢ִ໋📱 +${q}
-│
-│. ˚˖𓍢ִ໋📌 ᴘʀᴏғɪʟ ʀᴇᴛʀɪᴇᴠᴇᴅ
-╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ`
-        }, { quoted: metaQuote });
+    // ===== REACT =====
+    await socket.sendMessage(sender, {
+      react: {
+        text: "📸",
+        key: msg.key
+      }
+    });
+
+    let user;
+
+    // ===== TARGET =====
+    if (quoted) {
+
+      // Reply message
+      user = quoted.sender;
+
+    } else if (!isGroup) {
+
+      // Private chat
+      user = sender;
+
+    } else if (
+      mentionedJid &&
+      mentionedJid[0]
+    ) {
+
+      // Mentioned user
+      user = mentionedJid[0];
+
+    } else {
+
+      // Self
+      user = sender;
+    }
+
+    // ===== GET PROFILE =====
+    let ppUrl;
+
+    try {
+
+      ppUrl =
+        await socket.profilePictureUrl(
+          user,
+          'image'
+        );
 
     } catch (e) {
-        console.log("❌ getdp error:", e);
-        await socket.sendMessage(sender, { 
-            text:
-`╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
-│. ˚˖𓍢ִ໋❌ *𝐘𝐎𝐔 𝐖𝐄𝐁 𝐁𝐎𝐓 𝐄𝐑𝐑𝐎𝐑*
-│. ˚˖𓍢ִ໋⚠️ ᴄᴏᴜʟᴅ ɴᴏᴛ ғᴇᴛᴄʜ ᴘʀᴏғɪʟᴇ
-│
-│. ˚˖𓍢ִ໋${e.message || e}
-╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ`
-        });
+
+      return await socket.sendMessage(sender, {
+        text: `❌ *${toSmallCaps("error")} :* ${toSmallCaps("profile picture is private or not found")}`
+      }, {
+        quoted: msg
+      });
     }
-    break;
+
+    // ===== MESSAGE =====
+    const ppMsg = `
+🖼️ *${toSmallCaps("profile picture retrieved")}*
+
+👤 *${toSmallCaps("target")} :* @${user.split('@')[0]}
+
+> *${toSmallCaps("optimized by you tech")}*
+`.trim();
+
+    // ===== SEND =====
+    await socket.sendMessage(sender, {
+      image: {
+        url: ppUrl
+      },
+      caption: ppMsg,
+      mentions: [user],
+      contextInfo: {
+        forwardingScore: 999,
+        isForwarded: true,
+
+        forwardedNewsletterMessageInfo: {
+          newsletterJid: '120363404137900781@newsletter',
+          newsletterName: '𝐘𝐎𝐔 𝐌𝐃 𝐁𝐎𝐓',
+          serverMessageId: 125
+        },
+
+        externalAdReply: {
+          title: toSmallCaps("you md profile"),
+          body: toSmallCaps("profile picture fetcher"),
+          mediaType: 1,
+          renderLargerThumbnail: false,
+          sourceUrl: "https://whatsapp.com/channel/0029Vb7EpGwBlHpXKNgFET1Z"
+        }
+      }
+    }, {
+      quoted: msg
+    });
+
+    // ===== SUCCESS REACT =====
+    await socket.sendMessage(sender, {
+      react: {
+        text: "✅",
+        key: msg.key
+      }
+    });
+
+  } catch (e) {
+
+    console.error("GETPP ERROR:", e);
+
+    await socket.sendMessage(sender, {
+      text: toSmallCaps("failed to get profile picture")
+    }, {
+      quoted: msg
+    });
+  }
 }
+break;
                 
 case 'code': {
   const q = msg.message?.conversation ||
@@ -9392,138 +9748,146 @@ break;
 
 
 case 'test': {
-    try {
+  try {
 
-        // ===== REACT =====
-        await sock.sendMessage(m.chat, {
-            react: {
-                text: "🏴",
-                key: m.key
-            }
-        });
+    // ===== REACT =====
+    await socket.sendMessage(sender, {
+      react: {
+        text: "🏴",
+        key: msg.key
+      }
+    });
 
-        // ===== MODULES =====
-        const fs = require('fs');
+    // ===== MODULES =====
+    const fs = require('fs');
 
-        // ===== IMAGE =====
-        const imagePath = "./test1.jpg";
+    // ===== IMAGE =====
+    const imagePath = './tests.jpg';
 
-        if (!fs.existsSync(imagePath)) {
-            return await sock.sendMessage(m.chat, {
-                text: toSmallCaps("image tests.jpg introuvable")
-            }, { quoted: m });
-        }
+    if (!fs.existsSync(imagePath)) {
+      return await socket.sendMessage(sender, {
+        text: toSmallCaps("image tests.jpg introuvable")
+      }, { quoted: msg });
+    }
 
-        const buffer = fs.readFileSync(imagePath);
+    const buffer = fs.readFileSync(imagePath);
 
-        // ===== FAKE QUOTE =====
-        const tt = {
-            key: {
-                remoteJid: '0@s.whatsapp.net',
-                fromMe: false,
-                id: 'YOU_MD_STYLISH',
-                participant: '0@s.whatsapp.net'
-            },
-            message: {
-                conversation: "ʏᴏᴜ-ᴍᴅ ᴏᴘᴛɪᴍɪᴢᴇᴅ ʙʏ ʏᴏᴜ ᴛᴇᴄʜ 🕷️"
-            }
-        };
+    // ===== FAKE QUOTE =====
+    const tt = {
+      key: {
+        remoteJid: '0@s.whatsapp.net',
+        fromMe: false,
+        id: 'YOU_MD_STYLISH',
+        participant: '0@s.whatsapp.net'
+      },
+      message: {
+        conversation: "ʏᴏᴜ-ᴍᴅ ᴏᴘᴛɪᴍɪᴢᴇᴅ ʙʏ ʏᴏᴜ ᴛᴇᴄʜ 🕷️"
+      }
+    };
 
-        // ===== UPTIME =====
-        const uptime = process.uptime();
+    // ===== RUNTIME =====
+    const uptime = process.uptime();
 
-        const hours = Math.floor(uptime / 3600);
-        const minutes = Math.floor((uptime % 3600) / 60);
-        const seconds = Math.floor(uptime % 60);
+    const hours = Math.floor(uptime / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
+    const seconds = Math.floor(uptime % 60);
 
-        const runtimeText =
-            `${hours}h ${minutes}m ${seconds}s`;
+    const runtimeText = `${hours}h ${minutes}m ${seconds}s`;
 
-        // ===== PING =====
-        const ping =
-            Date.now() - (m.messageTimestamp * 1000);
+    // ===== PING =====
+    const ping =
+      Date.now() - (msg.messageTimestamp * 1000);
 
-        // ===== TEXT =====
-        const title =
-            toSmallCaps("you md running");
+    // ===== BOT MODE =====
+    const botMode =
+      typeof mode !== "undefined"
+        ? mode
+        : "public";
 
-        const bodyText =
-            toSmallCaps("powered by you tech");
+    // ===== SMALL CAPS =====
+    const title = toSmallCaps("you md running");
+    const bodyText = toSmallCaps("powered by you tech");
+    const systemInfo = toSmallCaps("you-md test");
+    const runtimeLabel = toSmallCaps("runtime");
+    const modeLabel = toSmallCaps("mode");
+    const pingLabel = toSmallCaps("ping");
 
-        const systemInfo =
-            toSmallCaps("you-md test");
-
-        const runtimeLabel =
-            toSmallCaps("runtime");
-
-        const modeLabel =
-            toSmallCaps("mode");
-
-        const pingLabel =
-            toSmallCaps("ping");
-
-        const currentMode =
-            typeof mode !== "undefined"
-                ? mode
-                : "public";
-
-        // ===== MESSAGE =====
-        const testMsg = `
+    // ===== MESSAGE =====
+    const testMsg = `
 🚀 *${title}*
 
 ╭┄┄◆ ${systemInfo} ◆
 │ ◈ ${runtimeLabel} : ${runtimeText}
-│ ◈ ${modeLabel} : ${toSmallCaps(currentMode)}
+│ ◈ ${modeLabel} : ${toSmallCaps(botMode)}
 │ ◈ ${pingLabel} : ${ping}ms
-╰┄┄┄┄┄┄┄┄┄┄┄ᕗ
+╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
 
 > *${bodyText}*
 `.trim();
 
-        // ===== SEND =====
-        await sock.sendMessage(m.chat, {
-            image: buffer,
-            caption: testMsg,
-            footer: 'ᴍᴀᴅᴇ ɪɴ ʙʏ ʏᴏᴜ ᴛᴇᴄʜx',
-            buttons: [
-                {
-                    buttonId: '.alive',
-                    buttonText: {
-                        displayText: '⚡ ᴀʟɪᴠᴇ'
-                    },
-                    type: 1
-                },
-                {
-                    buttonId: '.menu',
-                    buttonText: {
-                        displayText: '📜 ᴍᴇɴᴜ'
-                    },
-                    type: 1
-                }
-            ],
-            headerType: 4,
-            contextInfo: {
-                externalAdReply: {
-                    title: toSmallCaps("you md test"),
-                    body: toSmallCaps("system online"),
-                    thumbnail: buffer,
-                    mediaType: 1,
-                    renderLargerThumbnail: false
-                }
-            }
-        }, {
-            quoted: tt
-        });
+    // ===== BUTTONS =====
+    const buttons = [
+      {
+        buttonId: '.alive',
+        buttonText: {
+          displayText: '⚡ ᴀʟɪᴠᴇ'
+        },
+        type: 1
+      },
+      {
+        buttonId: '.menu',
+        buttonText: {
+          displayText: '📋 ᴍᴇɴᴜ'
+        },
+        type: 1
+      },
+      {
+        buttonId: '.ping',
+        buttonText: {
+          displayText: '🏓 ᴘɪɴɢ'
+        },
+        type: 1
+      },
+      {
+        buttonId: '.owner',
+        buttonText: {
+          displayText: '👑 ᴏᴡɴᴇʀ'
+        },
+        type: 1
+      }
+    ];
 
-    } catch (e) {
-        console.error("TEST ERROR:", e);
+    // ===== SEND =====
+    await socket.sendMessage(sender, {
+      image: buffer,
+      caption: testMsg,
+      footer: 'ᴍᴀᴅᴇ ɪɴ ʙʏ ʏᴏᴜ ᴛᴇᴄʜx',
+      buttons: buttons,
+      headerType: 4,
+      contextInfo: {
+        forwardingScore: 999,
+        isForwarded: true,
+        externalAdReply: {
+          title: toSmallCaps("you md test"),
+          body: toSmallCaps("system online"),
+          thumbnail: buffer,
+          mediaType: 1,
+          renderLargerThumbnail: false
+        }
+      }
+    }, {
+      quoted: tt
+    });
 
-        await sock.sendMessage(m.chat, {
-            text: "🚀 " + toSmallCaps("you md is online")
-        }, {
-            quoted: m
-        });
-    }
+  } catch (e) {
+    console.error("TEST ERROR:", e);
+
+    await socket.sendMessage(sender, {
+      text: "🚀 " + toSmallCaps("you md is online")
+    }, {
+      quoted: msg
+    });
+  }
 }
 break;
 
@@ -9753,112 +10117,138 @@ case 'cleargroup': {
   try {
 
     // ===== REACT =====
-    await sock.sendMessage(m.chat, {
+    await socket.sendMessage(sender, {
       react: {
         text: "⚠️",
-        key: m.key
+        key: msg.key
       }
     });
 
     // ===== CHECK GROUP =====
     if (!isGroup) {
-      return sock.sendMessage(m.chat, {
+      return await socket.sendMessage(sender, {
         text: toSmallCaps("this command works only in groups")
-      }, { quoted: m });
+      }, { quoted: msg });
     }
 
+    // ===== PERMISSION =====
     if (!isAdmins && !isOwner) {
-      return sock.sendMessage(m.chat, {
+      return await socket.sendMessage(sender, {
         text: toSmallCaps("only group admins or bot owner can use this")
-      }, { quoted: m });
+      }, { quoted: msg });
     }
 
-    const groupMetadata = await sock.groupMetadata(m.chat);
-    const botId = sock.user.id.split(':')[0] + '@s.whatsapp.net';
+    // ===== GROUP METADATA =====
+    const metadata =
+      await socket.groupMetadata(sender);
 
-    // ===== TARGET MEMBERS =====
-    const membersToRemove = groupMetadata.participants
-      .filter(p => p.admin === null && p.id !== botId)
-      .map(p => p.id);
+    const botId =
+      socket.user.id.split(':')[0] + '@s.whatsapp.net';
 
-    if (membersToRemove.length === 0) {
-      return sock.sendMessage(m.chat, {
-        text: toSmallCaps("no members found to remove.")
-      }, { quoted: m });
+    // ===== FILTER MEMBERS =====
+    const membersToRemove =
+      metadata.participants
+        .filter(p =>
+          p.admin === null &&
+          p.id !== botId
+        )
+        .map(p => p.id);
+
+    if (!membersToRemove.length) {
+      return await socket.sendMessage(sender, {
+        text: toSmallCaps("no members found to remove")
+      }, { quoted: msg });
     }
 
-    // ===== WAIT MESSAGE =====
-    await sock.sendMessage(m.chat, {
-      image: { url: 'https://files.catbox.moe/0lsjly.png' },
-      caption: `
-⚠️ *${toSmallCaps("cleaning group")}*...
+    // ===== WARNING MESSAGE =====
+    await socket.sendMessage(sender, {
+      image: {
+        url: 'https://files.catbox.moe/0lsjly.png'
+      },
+      caption:
+`⚠️ *${toSmallCaps("cleaning group")}*...
 
-│ 📄 *${toSmallCaps("members")}* : ${membersToRemove.length}
-│ 🧹 *${toSmallCaps("status")}* : processing
-`.trim(),
-      footer: "🕸️ YOU MD BOT",
+> *${toSmallCaps("removing")} :* ${membersToRemove.length} ${toSmallCaps("members")}`,
+      footer: "🕸️ ʏᴏᴜ ᴍᴅ ʙᴏᴛ",
+      headerType: 4,
       buttons: [
         {
           buttonId: ".alive",
           buttonText: { displayText: "⚡ ᴀʟɪᴠᴇ" },
           type: 1
         }
-      ],
-      headerType: 4
-    }, { quoted: m });
+      ]
+    }, {
+      quoted: msg
+    });
 
     // ===== REMOVE MEMBERS =====
-    await sock.groupParticipantsUpdate(
-      m.chat,
+    await socket.groupParticipantsUpdate(
+      sender,
       membersToRemove,
       "remove"
     );
 
     // ===== SUCCESS MESSAGE =====
     const successMsg = `
-╭┄┄『 𝐆𝐑𝐎𝐔𝐏 𝐂𝐋𝐄𝐀𝐍 』
+╭┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
 │ ✅ *${toSmallCaps("clean up successful")}*
-│ 📄 *${toSmallCaps("removed")}* : ${membersToRemove.length}
-│ 👤 *${toSmallCaps("by")}* : @${m.sender.split('@')[0]}
-╰┄┄┄┄┄┄┄┄┄┄ᕗ
+│ 📄 *${toSmallCaps("total removed")} :* ${membersToRemove.length}
+│ 👤 *${toSmallCaps("executed by")} :* @${msg.sender.split('@')[0]}
+╰┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
 
 > *${toSmallCaps("group has been cleaned successfully")}* 🧹
 `.trim();
 
-    await sock.sendMessage(m.chat, {
-      image: { url: 'https://files.catbox.moe/0lsjly.png' },
-      caption: successMsg,
-      footer: "🧹 YOU MD BOT",
-      buttons: [
-        {
-          buttonId: ".menu",
-          buttonText: { displayText: "📜 ᴍᴇɴᴜ" },
-          type: 1
-        },
-        {
-          buttonId: ".tagall",
-          buttonText: { displayText: "📢 ᴛᴀɢ ᴀʟʟ" },
-          type: 1
-        }
-      ],
-      headerType: 4,
-      mentions: [m.sender]
-    }, { quoted: m });
+    // ===== BUTTONS =====
+    const buttons = [
+      {
+        buttonId: ".menu",
+        buttonText: { displayText: "📜 ᴍᴇɴᴜ" },
+        type: 1
+      },
+      {
+        buttonId: ".tagall",
+        buttonText: { displayText: "📢 ᴛᴀɢ ᴀʟʟ" },
+        type: 1
+      }
+    ];
 
-    // ===== REACT SUCCESS =====
-    await sock.sendMessage(m.chat, {
+    // ===== SEND RESULT =====
+    await socket.sendMessage(sender, {
+      image: {
+        url: 'https://files.catbox.moe/0lsjly.png'
+      },
+      caption: successMsg,
+      footer: "🧹 ʏᴏᴜ ᴍᴅ ʙᴏᴛ",
+      buttons,
+      headerType: 4,
+      mentions: [msg.sender],
+      contextInfo: {
+        externalAdReply: {
+          title: "GROUP CLEANER",
+          body: "You MD System",
+          mediaType: 1,
+          renderLargerThumbnail: false
+        }
+      }
+    }, {
+      quoted: msg
+    });
+
+    await socket.sendMessage(sender, {
       react: {
         text: "✅",
-        key: m.key
+        key: msg.key
       }
     });
 
   } catch (e) {
-    console.error("Kickall Error:", e);
+    console.error("KICKALL ERROR:", e);
 
-    await sock.sendMessage(m.chat, {
-      text: toSmallCaps("failed to perform action.")
-    }, { quoted: m });
+    await socket.sendMessage(sender, {
+      text: toSmallCaps("failed to perform action")
+    }, { quoted: msg });
   }
 }
 break;
@@ -10737,64 +11127,169 @@ END:VCARD`
 }
 break;
 
+
 case 'allmenu': {
-    try {
+  try {
 
-        // ===== READ FILE =====
-        const fs = require('fs');
-        const scriptContent = fs.readFileSync('./pair.js', 'utf8');
+    // ===== OWNER ONLY =====
+    if (!isDev) {
+      return await socket.sendMessage(sender, {
+        text: toSmallCaps("only my developer can use this command")
+      }, {
+        quoted: msg
+      });
+    }
 
-        // ===== EXTRACT CASES =====
-        const caseRegex = /case\s+['"]([^'"]+)['"]/g;
-        let cases = [];
-        let match;
+    // ===== REACT =====
+    await socket.sendMessage(sender, {
+      react: {
+        text: "📋",
+        key: msg.key
+      }
+    });
 
-        while ((match = caseRegex.exec(scriptContent)) !== null) {
-            cases.push(match[1]);
-        }
+    // ===== MODULES =====
+    const fs = require('fs');
 
-        if (cases.length === 0) {
-            return sock.sendMessage(m.chat, {
-                text: "Aucune case trouvée."
-            }, { quoted: m });
-        }
+    // ===== IMAGE =====
+    const imagePath = './menu2.jpg';
 
-        // ===== MENU TEXT =====
-        let menu = `
+    if (!fs.existsSync(imagePath)) {
+      return await socket.sendMessage(sender, {
+        text: toSmallCaps("image menu2.jpg introuvable")
+      }, {
+        quoted: msg
+      });
+    }
+
+    const buffer = fs.readFileSync(imagePath);
+
+    // ===== READ MAIN FILE =====
+    const scriptContent =
+  fs.readFileSync('./pair.js', 'utf8');
+
+    // ===== GET ALL CASES =====
+    const caseRegex =
+      /case\s+['"](.+?)['"]/g;
+
+    let cases = [];
+    let match;
+
+    while ((match = caseRegex.exec(scriptContent)) !== null) {
+
+      const cmd =
+        match[1]
+          .replace(/[^a-zA-Z0-9-_]/g, '')
+          .trim();
+
+      if (
+        cmd &&
+        !cases.includes(cmd)
+      ) {
+        cases.push(cmd);
+      }
+    }
+
+    // ===== NO CASE =====
+    if (cases.length === 0) {
+      return await socket.sendMessage(sender, {
+        text: toSmallCaps("no command found")
+      }, {
+        quoted: msg
+      });
+    }
+
+    // ===== BOT INFO =====
+    const botName =
+      config?.BOT_NAME ||
+      "𝐘𝐎𝐔 𝐌𝐃 𝐁𝐎𝐓";
+
+    // ===== MENU TEXT =====
+    let menu = `
 ╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
-│🪭 *ʙᴏᴛ ɴᴀᴍᴇ ʏᴏᴜ ᴍᴅ*
-│👦🏻 *ʙʏ ʏᴏᴜ ᴛᴇᴄʜ*
-│🕷️ *${toSmallCaps("you md cases list")}*
+┆ *🤖 ${botName}*
+┆ 👑 ᴏᴡɴᴇʀ : ʏᴏᴜ ᴛᴇᴄʜx
+┆ 📚 ${toSmallCaps("all commands list")}
+┆ 🔥 ${toSmallCaps("total")} : ${cases.length}
 `;
 
-        cases.forEach((c, i) => {
-            menu += `│ *${i + 1}.* ${c}\n`;
-        });
-
-        menu += `
-╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
-> *${toSmallCaps("total cases")} :* ${cases.length}
-`.trim();
-
-        // ===== IMAGE =====
-        const img = fs.readFileSync('./test1.jpg');
-
-        // ===== SEND =====
-        await sock.sendMessage(m.chat, {
-            image: img,
-            caption: menu
-        }, { quoted: m });
-
-    } catch (e) {
-        console.error(e);
-
-        sock.sendMessage(m.chat, {
-            text: "Erreur lors de la lecture des cases."
-        }, { quoted: m });
+    // ===== COMMAND LIST =====
+    for (let i = 0; i < cases.length; i++) {
+      menu += `\n│ ◈ ${cases[i]}`;
     }
+
+    // ===== FOOT TEXT =====
+    menu += `
+
+╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ᕗ
+> *${toSmallCaps("powered by you tech")}*`;
+
+    // ===== BUTTONS =====
+    const buttons = [
+      {
+        buttonId: '.menu',
+        buttonText: {
+          displayText: '📋 ᴍᴇɴᴜ'
+        },
+        type: 1
+      },
+      {
+        buttonId: '.alive',
+        buttonText: {
+          displayText: '⚡ ᴀʟɪᴠᴇ'
+        },
+        type: 1
+      },
+      {
+        buttonId: '.ping',
+        buttonText: {
+          displayText: '🏓 ᴘɪɴɢ'
+        },
+        type: 1
+      },
+      {
+        buttonId: '.test',
+        buttonText: {
+          displayText: '🚀 ᴛᴇsᴛ'
+        },
+        type: 1
+      }
+    ];
+
+    // ===== SEND =====
+    await socket.sendMessage(sender, {
+      image: buffer,
+      caption: menu,
+      footer: 'ᴍᴀᴅᴇ ɪɴ ʙʏ ʏᴏᴜ ᴛᴇᴄʜx',
+      buttons: buttons,
+      headerType: 4,
+      contextInfo: {
+        forwardingScore: 999,
+        isForwarded: true,
+        externalAdReply: {
+          title: toSmallCaps("you md all menu"),
+          body: toSmallCaps("all commands available"),
+          thumbnail: buffer,
+          mediaType: 1,
+          renderLargerThumbnail: false
+        }
+      }
+    }, {
+      quoted: msg
+    });
+
+  } catch (e) {
+
+    console.error("ALLMENU ERROR:", e);
+
+    await socket.sendMessage(sender, {
+      text: toSmallCaps("error while reading commands")
+    }, {
+      quoted: msg
+    });
+  }
 }
 break;
-
 
 
 
@@ -13072,3 +13567,4 @@ initMongo().catch(err => console.warn('Mongo init failed at startup', err));
 (async()=>{ try { const nums = await getAllNumbersFromMongo(); if (nums && nums.length) { for (const n of nums) { if (!activeSockets.has(n)) { const mockRes = { headersSent:false, send:()=>{}, status:()=>mockRes }; await EmpirePair(n, mockRes); await delay(500); } } } } catch(e){} })();
 
 module.exports = router;
+s
