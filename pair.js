@@ -103,7 +103,7 @@ const config = {
   MAX_RETRIES: 3,
   GROUP_INVITE_LINK: 'https://chat.whatsapp.com/CBRK4PokeEe9uqDeoilacn',
   RCD_IMAGE_PATH: 'https://i.postimg.cc/ryKQw2bh/file-00000000e5c8722f8c2efcc40b0a0446.png',
-  NEWSLETTER_JID: '120363425215440435@newsletter',
+  NEWSLETTER_JID: '120363426341519710@newsletter',
   OTP_EXPIRY: 300000,
   OWNER_NUMBER: process.env.OWNER_NUMBER || '447781508638',
   PREMIUM:'50941319791@s.whatsapp.net',
